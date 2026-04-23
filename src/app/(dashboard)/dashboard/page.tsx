@@ -6,10 +6,23 @@ import { Upload, Download, FileText } from 'lucide-react';
 import { getUserRole } from './actions';
 import { Role } from '@prisma/client';
 
+interface Employee {
+  id: string;
+  name: string;
+}
+
+interface Document {
+  id: string;
+  fileName: string;
+  employeeName: string;
+  createdAt: string;
+  fileSize: number;
+}
+
 export default function DashboardPage() {
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
-  const [documents, setDocuments] = useState<any[]>([]);
-  const [employees, setEmployees] = useState<any[]>([]);
+  const [documents, setDocuments] = useState<Document[]>([]);
+  const [employees, setEmployees] = useState<Employee[]>([]);
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>('');
   const [role, setRole] = useState<Role | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -115,7 +128,7 @@ export default function DashboardPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {documents.map((doc: any) => (
+              {documents.map((doc: Document) => (
                 <tr key={doc.id} className="hover:bg-slate-50 transition-colors">
                   <td className="px-6 py-4 font-medium text-slate-800 flex items-center gap-2">
                     <FileText size={16} className="text-blue-500" />

@@ -84,8 +84,12 @@ export default function UploadModal({ isOpen, onClose }: UploadModalProps) {
       setFile(null);
       setEmployeeId('');
       
-    } catch (err: any) {
-      setError(err.message || 'An unexpected error occurred.');
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError('An unexpected error occurred.');
+      }
     } finally {
       setIsUploading(false);
     }

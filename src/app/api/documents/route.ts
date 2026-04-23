@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
+import { Prisma } from '@prisma/client';
 import { auth } from '@clerk/nextjs/server';
 
 export async function GET(req: Request) {
@@ -17,7 +18,7 @@ export async function GET(req: Request) {
     const url = new URL(req.url);
     const employeeIdFilter = url.searchParams.get('employeeId');
 
-    let whereClause: any = {};
+    const whereClause: Prisma.DocumentWhereInput = {};
 
     if (user.role === 'EMPLOYEE') {
       whereClause.uploadedById = clerkId;
