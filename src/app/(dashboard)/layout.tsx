@@ -2,7 +2,7 @@
 
 import { UserButton } from "@clerk/nextjs";
 import Link from "next/link";
-import { LayoutDashboard, FileText, Settings, UserCircle } from "lucide-react";
+import { FileText, Settings, UserCircle } from "lucide-react";
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { Toaster } from "sonner";
@@ -34,8 +34,8 @@ export default function DashboardLayout({
             href="/dashboard" 
             className={`flex items-center gap-3 px-3 py-2 rounded-md transition-colors ${pathname === '/dashboard' ? 'bg-[#3b82f6]/20 text-[#3b82f6]' : 'hover:bg-[#3b82f6]/20 hover:text-[#3b82f6] text-slate-300'}`}
           >
-            <LayoutDashboard size={20} />
-            <span className="font-medium">Dashboard</span>
+            <FileText size={20} />
+            <span className="font-medium">Documents</span>
           </Link>
           
           {role === 'ADMIN' && (
