@@ -1,0 +1,59 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String     @id @default(cuid())
+  clerkId   String     @unique
+  email     String     @unique
+  name      String
+  role      Role       @default(EMPLOYEE)
+  createdAt DateTime   @default(now())
+  auditLogs AuditLog[]
+}
+
+enum Role {
+  ADMIN
+  MANAGER
+  SUPERVISOR
+  LAWYER
+  EMPLOYEE
+}
+
+model Employee {
+  id        String     @id @default(cuid())
+  name      String
+  email     String     @unique
+  position  String?
+  createdAt DateTime   @default(now())
+  documents Document[]
+}
+
+model Document {
+  id           String     @id @default(cuid())
+  employeeId   String
+  employee     Employee   @relation(fields: [employeeId], references: [id])
+  fileName     String
+  fileKey      String     @unique
+  fileSize     Int
+  mimeType     String
+  uploadedById String
+  createdAt    DateTime   @default(now())
+  auditLogs    AuditLog[]
+}
+
+model AuditLog {
+  id         String    @id @default(cuid())
+  userId     String
+  user       User      @relation(fields: [userId], references: [id])
+  documentId String?
+  document   Document? @relation(fields: [documentId], references: [id])
+  action     String
+  metadata   Json?
+  createdAt  DateTime  @default(now())
+}
