@@ -2,8 +2,6 @@ import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { auth } from '@clerk/nextjs/server';
 import { canPerformAction } from '@/lib/rbac';
-import { head } from '@vercel/blob';
-import { generateClientTokenFromReadWriteToken } from '@vercel/blob/client';
 
 export async function GET(req: Request, { params }: { params: { id: string } }) {
   try {
@@ -29,21 +27,15 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
       return new NextResponse('Document not found', { status: 404 });
     }
 
-    const blobDetails = await head(document.fileKey);
-    if (!blobDetails) {
-      return new NextResponse('File not found in storage', { status: 404 });
-    }
-
-    const token = await generateClientTokenFromReadWriteToken({
-      pathname: blobDetails.pathname,
-      onUploadCompleted: {
-        callbackUrl: 'https://secure-docs.example.com', // Dummy, not used for download
+    const response = await fetch(document.fileKey, {
+      headers: {
+        Authorization: `Bearer ${process.env.BLOB_READ_WRITE_TOKEN}`
       }
     });
-    
-    // The instructions say: "return the url with a download token using generateClientTokenFromReadWriteToken() from @vercel/blob/client with expiresIn: 900 (15 minutes)"
-    // Vercel blob download links generally append ?download=1. Since token generation is mostly for client uploads, we'll append the token as instructed.
-    const signedUrl = `${document.fileKey}?download=1&token=${token}`;
+
+    if (!response.ok) {
+      return new NextResponse('Error fetching file from storage', { status: response.status });
+    }
 
     await prisma.auditLog.create({
       data: {
@@ -53,7 +45,11 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
       }
     });
 
-    return NextResponse.json({ signedUrl, expiresIn: 900 });
+    const headers = new Headers();
+    headers.set('Content-Disposition', `attachment; filename="${document.fileName}"`);
+    headers.set('Content-Type', document.mimeType);
+
+    return new Response(response.body, { headers });
   } catch (error) {
     console.error('[DOCUMENT_DOWNLOAD]', error);
     return new NextResponse('Internal error', { status: 500 });

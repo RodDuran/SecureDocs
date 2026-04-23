@@ -50,12 +50,19 @@ export default function DashboardPage() {
       });
   }, [selectedEmployeeId, isUploadModalOpen]);
 
-  const handleDownload = async (docId: string) => {
+  const handleDownload = async (doc: Document) => {
     try {
-      const res = await fetch(`/api/documents/${docId}/download`);
+      const res = await fetch(`/api/documents/${doc.id}/download`);
       if (res.ok) {
-        const data = await res.json();
-        window.open(data.signedUrl, '_blank');
+        const blob = await res.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = doc.fileName;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        window.URL.revokeObjectURL(url);
       } else {
         alert('Failed to download document or insufficient permissions.');
       }
@@ -139,7 +146,7 @@ export default function DashboardPage() {
                   <td className="px-6 py-4">{formatSize(doc.fileSize)}</td>
                   <td className="px-6 py-4 text-right">
                     <button
-                      onClick={() => handleDownload(doc.id)}
+                      onClick={() => handleDownload(doc)}
                       className="text-blue-600 hover:text-blue-800 font-medium inline-flex items-center gap-1"
                     >
                       <Download size={16} />
