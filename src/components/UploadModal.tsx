@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { X, Upload, File, CheckCircle2, AlertCircle } from 'lucide-react';
+import { toast } from 'sonner';
 
 interface UploadModalProps {
   isOpen: boolean;
@@ -80,7 +81,9 @@ export default function UploadModal({ isOpen, onClose }: UploadModalProps) {
         throw new Error(errorText || 'Upload failed');
       }
 
-      setSuccess(`Successfully uploaded ${file.name}`);
+      const empName = employees.find(e => e.id === employeeId)?.name || 'employee';
+      toast.success(`Document uploaded to ${empName}`);
+      setSuccess(`Document uploaded to ${empName}`);
       setFile(null);
       setEmployeeId('');
       

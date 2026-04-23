@@ -97,15 +97,18 @@ export default function DashboardPage() {
   return (
     <div className="max-w-5xl mx-auto">
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-semibold text-slate-800">
-          {isEmployee ? 'My Documents' : 'Documents'}
-        </h2>
+        <div>
+          <h2 className="text-2xl font-semibold text-slate-800">
+            {isEmployee ? 'My Documents' : 'Employee Documents'}
+          </h2>
+          <p className="text-slate-500 mt-1">Securely manage and control access to employee records</p>
+        </div>
         <button
           onClick={() => setIsUploadModalOpen(true)}
           className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white font-medium rounded-md hover:bg-blue-700 transition-colors"
         >
           <Upload size={18} />
-          Upload Document
+          Upload Employee Document
         </button>
       </div>
 
@@ -116,7 +119,7 @@ export default function DashboardPage() {
             onChange={(e) => setSelectedEmployeeId(e.target.value)}
             className="border border-slate-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-[250px]"
           >
-            <option value="">All Employees</option>
+            <option value="">Filter by Employee</option>
             {employees.map(emp => (
               <option key={emp.id} value={emp.id}>{emp.name}</option>
             ))}
@@ -160,7 +163,7 @@ export default function DashboardPage() {
                       className="text-slate-600 hover:text-slate-800 font-medium inline-flex items-center gap-1"
                     >
                       <Eye size={16} />
-                      Preview
+                      View
                     </button>
                     <button
                       onClick={() => handleDownload(doc)}

@@ -150,7 +150,7 @@ export default function AuditLogPage() {
             <tr>
               <th className="px-6 py-4 font-medium text-slate-700">Timestamp</th>
               <th className="px-6 py-4 font-medium text-slate-700">User</th>
-              <th className="px-6 py-4 font-medium text-slate-700">Action</th>
+              <th className="px-6 py-4 font-medium text-slate-700">Activity</th>
               <th className="px-6 py-4 font-medium text-slate-700">Document</th>
             </tr>
           </thead>

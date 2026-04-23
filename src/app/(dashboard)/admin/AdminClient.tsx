@@ -285,7 +285,8 @@ export default function AdminClient() {
 
       {/* Document Access Section */}
       <section>
-        <h2 className="text-xl font-semibold text-slate-800 mb-4">Document Access</h2>
+        <h2 className="text-xl font-semibold text-slate-800">Who Can Access Documents</h2>
+        <p className="text-slate-500 mb-4 mt-1">Grant users access to view employee documents</p>
         <div className="bg-slate-50 p-6 rounded-lg border border-slate-200 mb-6 flex gap-4 items-end flex-wrap">
           <div className="flex-1 min-w-[200px]">
             <label className="block text-xs font-medium text-slate-500 mb-1">Select User (Manager/Supervisor/Lawyer)</label>
@@ -310,7 +311,7 @@ export default function AdminClient() {
             disabled={isGranting || !selectedUserId || !selectedEmployeeId}
             className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm font-medium h-[38px] disabled:opacity-50"
           >
-            {isGranting ? 'Granting...' : 'Grant Access'}
+            {isGranting ? 'Granting...' : 'Grant Document Access'}
           </button>
         </div>
 

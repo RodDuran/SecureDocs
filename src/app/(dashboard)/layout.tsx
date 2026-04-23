@@ -52,18 +52,25 @@ export default function DashboardLayout({
                 className={`flex items-center gap-3 px-3 py-2 rounded-md transition-colors ${pathname === '/admin' ? 'bg-[#3b82f6]/20 text-[#3b82f6]' : 'hover:bg-[#3b82f6]/20 hover:text-[#3b82f6] text-slate-300'}`}
               >
                 <Settings size={20} />
-                <span className="font-medium">Admin</span>
+                <span className="font-medium">User & Access</span>
               </Link>
-              <Link 
-                href="/admin/invite" 
-                className={`flex items-center gap-3 px-3 py-2 rounded-md transition-colors ${pathname === '/admin/invite' ? 'bg-[#3b82f6]/20 text-[#3b82f6]' : 'hover:bg-[#3b82f6]/20 hover:text-[#3b82f6] text-slate-300'}`}
-              >
-                <UserCircle size={20} />
-                <span className="font-medium">Invite User</span>
-              </Link>
+              <div className="pl-8 mt-1">
+                <Link 
+                  href="/admin/invite" 
+                  className={`flex items-center gap-2 px-3 py-1.5 rounded-md transition-colors text-sm ${pathname === '/admin/invite' ? 'bg-[#3b82f6]/20 text-[#3b82f6]' : 'hover:bg-[#3b82f6]/20 hover:text-[#3b82f6] text-slate-400'}`}
+                >
+                  <UserCircle size={16} />
+                  <span>Invite User</span>
+                </Link>
+              </div>
             </>
           )}
         </nav>
+        <div className="p-4 mt-auto border-t border-slate-700/50">
+          <p className="text-xs text-slate-500 font-medium leading-tight">
+            🔒 All documents are access-controlled and logged
+          </p>
+        </div>
       </aside>
 
       <div className="flex-1 flex flex-col">
