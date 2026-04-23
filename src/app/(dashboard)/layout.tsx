@@ -2,9 +2,10 @@
 
 import { UserButton } from "@clerk/nextjs";
 import Link from "next/link";
-import { LayoutDashboard, FileText, Settings } from "lucide-react";
+import { LayoutDashboard, FileText, Settings, UserCircle } from "lucide-react";
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
+import { Toaster } from "sonner";
 
 export default function DashboardLayout({
   children,
@@ -53,6 +54,13 @@ export default function DashboardLayout({
                 <Settings size={20} />
                 <span className="font-medium">Admin</span>
               </Link>
+              <Link 
+                href="/admin/invite" 
+                className={`flex items-center gap-3 px-3 py-2 rounded-md transition-colors ${pathname === '/admin/invite' ? 'bg-[#3b82f6]/20 text-[#3b82f6]' : 'hover:bg-[#3b82f6]/20 hover:text-[#3b82f6] text-slate-300'}`}
+              >
+                <UserCircle size={20} />
+                <span className="font-medium">Invite User</span>
+              </Link>
             </>
           )}
         </nav>
@@ -66,6 +74,7 @@ export default function DashboardLayout({
           {children}
         </main>
       </div>
+      <Toaster position="top-right" richColors />
     </div>
   );
 }

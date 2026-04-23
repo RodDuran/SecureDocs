@@ -10,18 +10,33 @@ export async function POST(req: Request) {
       return new NextResponse("Missing required fields", { status: 400 });
     }
 
-    const user = await prisma.user.upsert({
-      where: { clerkId },
-      update: {
-        email,
-        name,
-      },
-      create: {
-        clerkId,
-        email,
-        name,
-      },
+    const pendingUser = await prisma.user.findUnique({
+      where: { clerkId: `pending_${email}` }
     });
+
+    let user;
+    if (pendingUser) {
+      user = await prisma.user.update({
+        where: { id: pendingUser.id },
+        data: {
+          clerkId,
+          name,
+        }
+      });
+    } else {
+      user = await prisma.user.upsert({
+        where: { clerkId },
+        update: {
+          email,
+          name,
+        },
+        create: {
+          clerkId,
+          email,
+          name,
+        },
+      });
+    }
 
     return NextResponse.json(user);
   } catch (error) {

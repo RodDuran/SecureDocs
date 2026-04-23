@@ -27,6 +27,21 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
       return new NextResponse('Document not found', { status: 404 });
     }
 
+    if (user.role === 'EMPLOYEE') {
+      if (document.uploadedById !== clerkId) {
+        return new NextResponse('Forbidden: Not your document', { status: 403 });
+      }
+    } else if (user.role !== 'ADMIN') {
+      const access = await prisma.documentAccess.findUnique({
+        where: {
+          userId_employeeId: { userId: user.id, employeeId: document.employeeId }
+        }
+      });
+      if (!access) {
+        return new NextResponse('Forbidden: No access to this employee', { status: 403 });
+      }
+    }
+
     const response = await fetch(document.fileKey, {
       headers: {
         Authorization: `Bearer ${process.env.BLOB_READ_WRITE_TOKEN}`

@@ -13,8 +13,9 @@ model User {
   email     String     @unique
   name      String
   role      Role       @default(EMPLOYEE)
-  createdAt DateTime   @default(now())
-  auditLogs AuditLog[]
+  createdAt      DateTime         @default(now())
+  auditLogs      AuditLog[]
+  documentAccess DocumentAccess[]
 }
 
 enum Role {
@@ -30,8 +31,9 @@ model Employee {
   name      String
   email     String     @unique
   position  String?
-  createdAt DateTime   @default(now())
-  documents Document[]
+  createdAt      DateTime         @default(now())
+  documents      Document[]
+  documentAccess DocumentAccess[]
 }
 
 model Document {
@@ -56,4 +58,16 @@ model AuditLog {
   action     String
   metadata   Json?
   createdAt  DateTime  @default(now())
+}
+
+model DocumentAccess {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id])
+  employeeId String
+  employee   Employee @relation(fields: [employeeId], references: [id])
+  grantedBy  String
+  createdAt  DateTime @default(now())
+
+  @@unique([userId, employeeId])
 }

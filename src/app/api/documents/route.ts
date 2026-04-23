@@ -22,6 +22,21 @@ export async function GET(req: Request) {
 
     if (user.role === 'EMPLOYEE') {
       whereClause.uploadedById = clerkId;
+    } else if (user.role !== 'ADMIN') {
+      const grants = await prisma.documentAccess.findMany({
+        where: { userId: user.id },
+        select: { employeeId: true }
+      });
+      const allowedEmployeeIds = grants.map(g => g.employeeId);
+      
+      if (employeeIdFilter) {
+        if (!allowedEmployeeIds.includes(employeeIdFilter)) {
+          return NextResponse.json([]); // Return empty if not granted
+        }
+        whereClause.employeeId = employeeIdFilter;
+      } else {
+        whereClause.employeeId = { in: allowedEmployeeIds };
+      }
     } else if (employeeIdFilter) {
       whereClause.employeeId = employeeIdFilter;
     }
