@@ -64,7 +64,7 @@ export default function DashboardPage() {
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = doc.fileName;
+        a.download = doc.fileName.split('/').pop() || doc.fileName;
         document.body.appendChild(a);
         a.click();
         a.remove();

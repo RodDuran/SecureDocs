@@ -1,99 +1,61 @@
-import { auth } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server';
-import { put } from '@vercel/blob';
-import prisma from '@/lib/prisma';
-import { canPerformAction } from '@/lib/rbac';
-import { v4 as uuidv4 } from 'uuid';
+import { handleUpload, type HandleUploadBody } from '@vercel/blob/client';
+import {
+  ALLOWED_MIME_TYPES,
+  MAX_FILE_SIZE,
+  getMimeType,
+  isJunkFile,
+  sanitizeRelativePath,
+} from '@/lib/fileTypes';
+import { requireUploader, UploadAuthError } from '@/lib/uploadAuth';
 
-export async function POST(req: Request) {
+// Step 1 of an upload: the browser asks for a short-lived, single-file
+// token, then sends the file directly to Vercel Blob. The file never passes
+// through this function, so large files and folders work.
+// Step 2 is /api/documents/upload/complete, which records the document.
+export async function POST(request: Request) {
   try {
-    // 1. Authenticate request via Clerk
-    const { userId: clerkId } = auth();
-    if (!clerkId) {
-      return new NextResponse('Unauthorized', { status: 401 });
-    }
+    const body = (await request.json()) as HandleUploadBody;
 
-    // 2. Get the user from the database
-    const user = await prisma.user.findUnique({
-      where: { clerkId }
+    const result = await handleUpload({
+      body,
+      request,
+      onBeforeGenerateToken: async (pathname, clientPayload) => {
+        let payload: { employeeId?: string } = {};
+        try {
+          payload = JSON.parse(clientPayload || '{}');
+        } catch {
+          throw new UploadAuthError('Invalid upload payload', 400);
+        }
+
+        const { user, employeeId } = await requireUploader(payload.employeeId);
+
+        // The blob must live under this employee's folder and match our rules.
+        const prefix = `documents/${employeeId}/`;
+        const relative = pathname.startsWith(prefix) ? pathname.slice(prefix.length) : '';
+        if (!relative || sanitizeRelativePath(relative) !== relative) {
+          throw new UploadAuthError('Invalid upload path', 400);
+        }
+        if (isJunkFile(relative) || !getMimeType(relative)) {
+          throw new UploadAuthError('File type not allowed', 400);
+        }
+
+        return {
+          allowedContentTypes: ALLOWED_MIME_TYPES,
+          maximumSizeInBytes: MAX_FILE_SIZE,
+          addRandomSuffix: true,
+          validUntil: Date.now() + 60 * 60 * 1000, // 1h, enough for very large files
+          tokenPayload: JSON.stringify({ userId: user.id, employeeId }),
+        };
+      },
     });
 
-    if (!user) {
-      return new NextResponse('User not found in database', { status: 401 });
-    }
-
-    // 3. Check RBAC
-    if (!canPerformAction(user.role, 'upload')) {
-      return new NextResponse('Forbidden: Insufficient permissions', { status: 403 });
-    }
-
-    // 4. Accept multipart/form-data
-    const formData = await req.formData();
-    const file = formData.get('file') as File | null;
-    const employeeId = formData.get('employeeId') as string | null;
-
-    if (!file || !employeeId) {
-      return new NextResponse('Missing file or employeeId', { status: 400 });
-    }
-
-    // 5. Validate file size (25MB = 25 * 1024 * 1024 bytes = 26214400 bytes)
-    const MAX_SIZE = 25 * 1024 * 1024;
-    if (file.size > MAX_SIZE) {
-      return new NextResponse('File too large. Maximum size is 25MB.', { status: 413 });
-    }
-
-    // 6. Validate file type
-    const allowedTypes = [
-      'application/pdf',
-      'application/msword',
-      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-      'image/png',
-      'image/jpeg',
-    ];
-    
-    // Check by extension as fallback (since some OS might send generic mimetypes)
-    const fileName = file.name;
-    const ext = fileName.split('.').pop()?.toLowerCase();
-    const allowedExtensions = ['pdf', 'doc', 'docx', 'png', 'jpg', 'jpeg'];
-
-    if (!allowedTypes.includes(file.type) && (!ext || !allowedExtensions.includes(ext))) {
-      return new NextResponse('Invalid file type. Allowed: .pdf, .doc, .docx, .png, .jpg, .jpeg', { status: 400 });
-    }
-
-    // 7. Upload to Vercel Blob
-    const uuid = uuidv4();
-    const pathname = `documents/${employeeId}/${uuid}-${fileName}`;
-    const blob = await put(pathname, file, {
-      access: 'private',
-      addRandomSuffix: false,
-    });
-
-    // 8. Create a Document record in PostgreSQL via Prisma
-    const document = await prisma.document.create({
-      data: {
-        employeeId,
-        fileName: fileName,
-        fileKey: blob.url,
-        fileSize: file.size,
-        mimeType: file.type || ext || 'application/octet-stream',
-        uploadedById: clerkId,
-      }
-    });
-
-    // 9. Create an AuditLog entry
-    await prisma.auditLog.create({
-      data: {
-        userId: user.id,
-        documentId: document.id,
-        action: 'UPLOAD',
-      }
-    });
-
-    // 10. Return { success: true, documentId }
-    return NextResponse.json({ success: true, documentId: document.id });
-
+    return NextResponse.json(result);
   } catch (error) {
-    console.error('[DOCUMENT_UPLOAD]', error);
-    return new NextResponse('Internal server error', { status: 500 });
+    if (error instanceof UploadAuthError) {
+      return new NextResponse(error.message, { status: error.status });
+    }
+    console.error('[DOCUMENT_UPLOAD_TOKEN]', error);
+    return new NextResponse('Could not start upload', { status: 400 });
   }
 }

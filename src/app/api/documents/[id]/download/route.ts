@@ -61,7 +61,14 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
     });
 
     const headers = new Headers();
-    headers.set('Content-Disposition', `attachment; filename="${document.fileName}"`);
+    // fileName may include a folder path (e.g. "Contracts/2024/offer.pdf");
+    // download with just the file's own name, safely encoded.
+    const baseName = document.fileName.split('/').pop() || 'download';
+    const asciiName = baseName.replace(/[^\x20-\x7e]/g, '_').replace(/["\\]/g, '_');
+    headers.set(
+      'Content-Disposition',
+      `attachment; filename="${asciiName}"; filename*=UTF-8''${encodeURIComponent(baseName)}`
+    );
     headers.set('Content-Type', document.mimeType);
 
     return new Response(response.body, { headers });
