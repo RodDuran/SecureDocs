@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { auth } from '@clerk/nextjs/server';
+import { getCurrentDbUser } from '@/lib/currentUser';
 import { canPerformAction } from '@/lib/rbac';
 
 export async function GET(req: Request, { params }: { params: { id: string } }) {
@@ -10,7 +11,7 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
       return new NextResponse('Unauthorized', { status: 401 });
     }
 
-    const user = await prisma.user.findUnique({ where: { clerkId } });
+    const user = await getCurrentDbUser();
     if (!user) {
       return new NextResponse('User not found', { status: 404 });
     }

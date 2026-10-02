@@ -15,11 +15,18 @@ export async function GET() {
     }
 
     const users = await prisma.user.findMany({
-      select: { id: true, name: true, email: true, role: true, createdAt: true },
+      select: {
+        id: true, name: true, email: true, role: true, createdAt: true, clerkId: true,
+        _count: { select: { documentAccess: true } },
+      },
       orderBy: { createdAt: 'desc' }
     });
 
-    return NextResponse.json(users);
+    return NextResponse.json(users.map(({ clerkId, _count, ...u }) => ({
+      ...u,
+      status: clerkId.startsWith('pending_') ? 'INVITED' : 'ACTIVE',
+      accessCount: _count.documentAccess,
+    })));
   } catch (error) {
     console.error('[USERS_GET]', error);
     return new NextResponse('Internal error', { status: 500 });

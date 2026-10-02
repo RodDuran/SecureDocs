@@ -2,6 +2,7 @@ import { auth } from '@clerk/nextjs/server';
 import type { User } from '@prisma/client';
 import prisma from '@/lib/prisma';
 import { canPerformAction } from '@/lib/rbac';
+import { getCurrentDbUser } from '@/lib/currentUser';
 
 export class UploadAuthError extends Error {
   constructor(message: string, public status: number) {
@@ -15,7 +16,7 @@ export async function requireUploader(employeeId: unknown): Promise<{ user: User
   const { userId: clerkId } = auth();
   if (!clerkId) throw new UploadAuthError('Unauthorized', 401);
 
-  const user = await prisma.user.findUnique({ where: { clerkId } });
+  const user = await getCurrentDbUser();
   if (!user) throw new UploadAuthError('User not found in database', 401);
 
   if (!canPerformAction(user.role, 'upload')) {

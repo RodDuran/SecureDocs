@@ -13,12 +13,19 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   const [role, setRole] = useState<string | null>(null);
+  const [noAccess, setNoAccess] = useState(false);
   const pathname = usePathname();
 
   useEffect(() => {
     fetch('/api/users/me')
-      .then(res => res.json())
-      .then(data => setRole(data.role))
+      .then(res => {
+        if (res.status === 403) {
+          setNoAccess(true);
+          return null;
+        }
+        return res.json();
+      })
+      .then(data => data && setRole(data.role))
       .catch(console.error);
   }, []);
 
@@ -60,7 +67,7 @@ export default function DashboardLayout({
                   className={`flex items-center gap-2 px-3 py-1.5 rounded-md transition-colors text-sm ${pathname === '/admin/invite' ? 'bg-[#3b82f6]/20 text-[#3b82f6]' : 'hover:bg-[#3b82f6]/20 hover:text-[#3b82f6] text-slate-400'}`}
                 >
                   <UserCircle size={16} />
-                  <span>Invite User</span>
+                  <span>Add User</span>
                 </Link>
               </div>
             </>
@@ -78,7 +85,17 @@ export default function DashboardLayout({
           <UserButton afterSignOutUrl="/" />
         </header>
         <main className="flex-1 p-8">
-          {children}
+          {noAccess ? (
+            <div className="max-w-md mx-auto mt-16 bg-white border border-slate-200 rounded-lg p-8 text-center shadow-sm">
+              <h2 className="text-lg font-semibold text-slate-800">You don&apos;t have access yet</h2>
+              <p className="text-sm text-slate-500 mt-2">
+                This account hasn&apos;t been invited to SecureDocs. Make sure you signed in with the email
+                address your invitation was sent to, or ask an administrator to add you.
+              </p>
+            </div>
+          ) : (
+            children
+          )}
         </main>
       </div>
       <Toaster position="top-right" richColors />

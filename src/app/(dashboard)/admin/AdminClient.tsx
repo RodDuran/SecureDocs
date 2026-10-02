@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
+import { UserPlus } from 'lucide-react';
 import { Role } from '@prisma/client';
 import { toast } from 'sonner';
 
@@ -10,6 +12,8 @@ interface User {
   name: string;
   email: string;
   role: string;
+  status: 'ACTIVE' | 'INVITED';
+  accessCount: number;
 }
 
 interface Employee {
@@ -48,6 +52,7 @@ export default function AdminClient() {
   const [selectedEmployeeId, setSelectedEmployeeId] = useState('');
   const [isGranting, setIsGranting] = useState(false);
   const [isRevokingId, setIsRevokingId] = useState<string | null>(null);
+  const [isCancellingId, setIsCancellingId] = useState<string | null>(null);
 
   useEffect(() => {
     fetch('/api/users/me')
@@ -95,6 +100,20 @@ export default function AdminClient() {
     } catch (err) {
       console.error(err);
       toast.error('An error occurred');
+    }
+  };
+
+  const handleCancelInvite = async (user: User) => {
+    setIsCancellingId(user.id);
+    try {
+      const res = await fetch(`/api/users/${user.id}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error((await res.text()) || 'Failed to cancel invitation');
+      toast.success(`Invitation for ${user.email} cancelled`);
+      fetchData();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'An error occurred');
+    } finally {
+      setIsCancellingId(null);
     }
   };
 
@@ -185,7 +204,18 @@ export default function AdminClient() {
 
       {/* Users Section */}
       <section className="mb-12">
-        <h2 className="text-xl font-semibold text-slate-800 mb-4">Users</h2>
+        <div className="flex justify-between items-start mb-4">
+          <div>
+            <h2 className="text-xl font-semibold text-slate-800">Users</h2>
+            <p className="text-slate-500 text-sm mt-1">People who sign in to view employee documents</p>
+          </div>
+          <Link
+            href="/admin/invite"
+            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm font-medium inline-flex items-center gap-2"
+          >
+            <UserPlus size={16} /> Add User
+          </Link>
+        </div>
         <div className="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden">
           <table className="w-full text-left text-sm text-slate-600">
             <thead className="bg-slate-50 border-b border-slate-200">
@@ -193,13 +223,16 @@ export default function AdminClient() {
                 <th className="px-6 py-4 font-medium text-slate-700">Name</th>
                 <th className="px-6 py-4 font-medium text-slate-700">Email</th>
                 <th className="px-6 py-4 font-medium text-slate-700">Role</th>
+                <th className="px-6 py-4 font-medium text-slate-700">Status</th>
+                <th className="px-6 py-4 font-medium text-slate-700">Employees</th>
+                <th className="px-6 py-4 font-medium text-slate-700 text-right">Action</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
               {isLoading ? (
-                <tr><td colSpan={3} className="px-6 py-8 text-center text-slate-500 animate-pulse">Loading users...</td></tr>
+                <tr><td colSpan={6} className="px-6 py-8 text-center text-slate-500 animate-pulse">Loading users...</td></tr>
               ) : users.length === 0 ? (
-                <tr><td colSpan={3} className="px-6 py-8 text-center text-slate-500">No users found.</td></tr>
+                <tr><td colSpan={6} className="px-6 py-8 text-center text-slate-500">No users found.</td></tr>
               ) : users.map(u => (
                 <tr key={u.id} className="hover:bg-slate-50 transition-colors">
                   <td className="px-6 py-4 font-medium text-slate-800">{u.name}</td>
@@ -214,6 +247,25 @@ export default function AdminClient() {
                         <option key={r} value={r}>{r}</option>
                       ))}
                     </select>
+                  </td>
+                  <td className="px-6 py-4">
+                    {u.status === 'INVITED' ? (
+                      <span className="inline-flex px-2 py-0.5 rounded-full text-xs font-medium bg-amber-50 text-amber-700 border border-amber-200">Invited</span>
+                    ) : (
+                      <span className="inline-flex px-2 py-0.5 rounded-full text-xs font-medium bg-green-50 text-green-700 border border-green-200">Active</span>
+                    )}
+                  </td>
+                  <td className="px-6 py-4">{u.role === 'ADMIN' ? 'All' : u.accessCount}</td>
+                  <td className="px-6 py-4 text-right">
+                    {u.status === 'INVITED' && (
+                      <button
+                        onClick={() => handleCancelInvite(u)}
+                        disabled={isCancellingId === u.id}
+                        className="text-red-600 hover:text-red-800 font-medium text-sm disabled:opacity-50"
+                      >
+                        {isCancellingId === u.id ? 'Cancelling...' : 'Cancel invite'}
+                      </button>
+                    )}
                   </td>
                 </tr>
               ))}
