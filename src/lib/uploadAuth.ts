@@ -30,5 +30,12 @@ export async function requireUploader(employeeId: unknown): Promise<{ user: User
   const employee = await prisma.employee.findUnique({ where: { id: employeeId }, select: { id: true } });
   if (!employee) throw new UploadAuthError('Employee not found', 404);
 
+  if (user.role !== 'ADMIN') {
+    const access = await prisma.documentAccess.findUnique({
+      where: { userId_employeeId: { userId: user.id, employeeId } },
+    });
+    if (!access) throw new UploadAuthError('Forbidden: No access to this employee', 403);
+  }
+
   return { user, clerkId, employeeId };
 }

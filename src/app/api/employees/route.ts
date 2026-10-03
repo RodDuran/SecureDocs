@@ -1,15 +1,22 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { auth } from '@clerk/nextjs/server';
+import { getCurrentDbUser } from '@/lib/currentUser';
 
 export async function GET() {
   try {
-    const { userId } = auth();
-    if (!userId) {
+    const user = await getCurrentDbUser();
+    if (!user) {
       return new NextResponse('Unauthorized', { status: 401 });
     }
 
+    // Admins see everyone; others only the employees they were granted.
+    const where = user.role === 'ADMIN'
+      ? {}
+      : { documentAccess: { some: { userId: user.id } } };
+
     const employees = await prisma.employee.findMany({
+      where,
       select: {
         id: true,
         name: true,

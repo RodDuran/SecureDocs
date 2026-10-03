@@ -93,6 +93,7 @@ export default function DashboardPage() {
   };
 
   const isEmployee = role === 'EMPLOYEE';
+  const canUpload = role === 'ADMIN' || role === 'MANAGER' || role === 'SUPERVISOR';
 
   return (
     <div className="max-w-5xl mx-auto">
@@ -103,6 +104,7 @@ export default function DashboardPage() {
           </h2>
           <p className="text-slate-500 mt-1">Securely manage and control access to employee records</p>
         </div>
+        {canUpload && (
         <button
           onClick={() => setIsUploadModalOpen(true)}
           className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white font-medium rounded-md hover:bg-blue-700 transition-colors"
@@ -110,6 +112,7 @@ export default function DashboardPage() {
           <Upload size={18} />
           Upload Employee Document
         </button>
+        )}
       </div>
 
       {!isEmployee && role && (
@@ -134,7 +137,13 @@ export default function DashboardPage() {
           <div className="p-12 flex flex-col items-center justify-center text-slate-500">
             <FileText size={48} className="text-slate-300 mb-4" />
             <p className="text-lg font-medium">No documents found</p>
-            <p className="text-sm mt-1">Upload a document to get started.</p>
+            <p className="text-sm mt-1">
+              {role === 'ADMIN'
+                ? 'Upload a document to get started.'
+                : employees.length === 0
+                  ? "You haven't been given access to any employees yet. Ask an administrator."
+                  : 'No documents have been uploaded yet for the employees you can access.'}
+            </p>
           </div>
         ) : (
           <table className="w-full text-left text-sm text-slate-600">
