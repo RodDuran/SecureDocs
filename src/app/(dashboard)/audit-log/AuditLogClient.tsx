@@ -14,6 +14,12 @@ interface AuditLog {
   metadata: unknown;
 }
 
+function moveDetail(log: AuditLog): string | null {
+  if (log.action !== 'MOVE' || !log.metadata || typeof log.metadata !== 'object') return null;
+  const m = log.metadata as { fromEmployeeName?: string; toEmployeeName?: string };
+  return m.fromEmployeeName && m.toEmployeeName ? `Moved from ${m.fromEmployeeName} to ${m.toEmployeeName}` : null;
+}
+
 export default function AuditLogPage() {
   const router = useRouter();
   const [role, setRole] = useState<string | null>(null);
@@ -71,7 +77,7 @@ export default function AuditLogPage() {
   const exportCsv = () => {
     if (logs.length === 0) return;
     
-    const headers = ['Timestamp', 'User', 'Email', 'Action', 'Document'];
+    const headers = ['Timestamp', 'User', 'Email', 'Action', 'Document', 'Details'];
     const csvRows = [headers.join(',')];
     
     for (const log of logs) {
@@ -80,7 +86,8 @@ export default function AuditLogPage() {
         `"${log.userName}"`,
         log.userEmail,
         log.action,
-        log.documentName ? `"${log.documentName}"` : 'N/A'
+        log.documentName ? `"${log.documentName}"` : 'N/A',
+        moveDetail(log) ? `"${moveDetail(log)}"` : ''
       ];
       csvRows.push(values.join(','));
     }
@@ -99,6 +106,7 @@ export default function AuditLogPage() {
       case 'UPLOAD': return <span className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full font-medium">UPLOAD</span>;
       case 'VIEW': return <span className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full font-medium">VIEW</span>;
       case 'DOWNLOAD': return <span className="bg-purple-100 text-purple-800 text-xs px-2 py-1 rounded-full font-medium">DOWNLOAD</span>;
+      case 'MOVE': return <span className="bg-amber-100 text-amber-800 text-xs px-2 py-1 rounded-full font-medium">MOVE</span>;
       case 'LOGIN': return <span className="bg-gray-100 text-gray-800 text-xs px-2 py-1 rounded-full font-medium">LOGIN</span>;
       default: return <span className="bg-gray-100 text-gray-800 text-xs px-2 py-1 rounded-full font-medium">{action}</span>;
     }
@@ -128,6 +136,7 @@ export default function AuditLogPage() {
             <option value="UPLOAD">UPLOAD</option>
             <option value="VIEW">VIEW</option>
             <option value="DOWNLOAD">DOWNLOAD</option>
+            <option value="MOVE">MOVE</option>
             <option value="LOGIN">LOGIN</option>
           </select>
         </div>
@@ -168,7 +177,10 @@ export default function AuditLogPage() {
                     <div className="text-xs text-slate-500">{log.userEmail}</div>
                   </td>
                   <td className="px-6 py-4">{getActionBadge(log.action)}</td>
-                  <td className="px-6 py-4">{log.documentName || '-'}</td>
+                  <td className="px-6 py-4">
+                    {log.documentName || '-'}
+                    {moveDetail(log) && <div className="text-xs text-slate-500 mt-0.5">{moveDetail(log)}</div>}
+                  </td>
                 </tr>
               ))
             )}

@@ -3,7 +3,8 @@
 import { useState, useEffect } from 'react';
 import UploadModal from '@/components/UploadModal';
 import PreviewModal from '@/components/PreviewModal';
-import { Upload, Download, FileText, Eye } from 'lucide-react';
+import MoveDocumentsModal from '@/components/MoveDocumentsModal';
+import { Upload, Download, FileText, Eye, FolderInput } from 'lucide-react';
 import { toast } from 'sonner';
 import { getUserRole } from './actions';
 import { Role } from '@prisma/client';
@@ -31,6 +32,9 @@ export default function DashboardPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
   const [isDownloadingId, setIsDownloadingId] = useState<string | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [isMoveOpen, setIsMoveOpen] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
     getUserRole().then(r => setRole(r));
@@ -47,13 +51,14 @@ export default function DashboardPage() {
       .then(res => res.json())
       .then(data => {
         setDocuments(data);
+        setSelectedIds(new Set());
         setIsLoading(false);
       })
       .catch(err => {
         console.error(err);
         setIsLoading(false);
       });
-  }, [selectedEmployeeId, isUploadModalOpen]);
+  }, [selectedEmployeeId, isUploadModalOpen, refreshKey]);
 
   const handleDownload = async (doc: Document) => {
     setIsDownloadingId(doc.id);
@@ -93,6 +98,18 @@ export default function DashboardPage() {
   };
 
   const isEmployee = role === 'EMPLOYEE';
+  const isAdmin = role === 'ADMIN';
+  const allSelected = documents.length > 0 && documents.every(d => selectedIds.has(d.id));
+  const toggleOne = (id: string) =>
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  const toggleAll = () =>
+    setSelectedIds(allSelected ? new Set() : new Set(documents.map(d => d.id)));
+  const selectedDocs = documents.filter(d => selectedIds.has(d.id));
   const canUpload = role === 'ADMIN' || role === 'MANAGER' || role === 'SUPERVISOR';
 
   return (
@@ -116,7 +133,7 @@ export default function DashboardPage() {
       </div>
 
       {!isEmployee && role && (
-        <div className="mb-4">
+        <div className="mb-4 flex items-center justify-between gap-4 flex-wrap">
           <select
             value={selectedEmployeeId}
             onChange={(e) => setSelectedEmployeeId(e.target.value)}
@@ -127,6 +144,18 @@ export default function DashboardPage() {
               <option key={emp.id} value={emp.id}>{emp.name}</option>
             ))}
           </select>
+          {isAdmin && selectedIds.size > 0 && (
+            <div className="flex items-center gap-3 text-sm">
+              <span className="text-slate-600">{selectedIds.size} selected</span>
+              <button onClick={() => setSelectedIds(new Set())} className="text-slate-500 hover:text-slate-700">Clear</button>
+              <button
+                onClick={() => setIsMoveOpen(true)}
+                className="inline-flex items-center gap-2 px-3 py-1.5 bg-white border border-slate-300 rounded-md font-medium text-slate-700 hover:bg-slate-50"
+              >
+                <FolderInput size={16} /> Move to another employee
+              </button>
+            </div>
+          )}
         </div>
       )}
 
@@ -149,6 +178,11 @@ export default function DashboardPage() {
           <table className="w-full text-left text-sm text-slate-600">
             <thead className="bg-slate-50 text-slate-700 border-b border-slate-200">
               <tr>
+                {isAdmin && (
+                  <th className="pl-6 py-4 w-8">
+                    <input type="checkbox" checked={allSelected} onChange={toggleAll} aria-label="Select all documents" />
+                  </th>
+                )}
                 <th className="px-6 py-4 font-medium">File Name</th>
                 <th className="px-6 py-4 font-medium">Employee</th>
                 <th className="px-6 py-4 font-medium">Uploaded</th>
@@ -158,7 +192,12 @@ export default function DashboardPage() {
             </thead>
             <tbody className="divide-y divide-slate-100">
               {documents.map((doc: Document) => (
-                <tr key={doc.id} className="hover:bg-slate-50 transition-colors">
+                <tr key={doc.id} className={`transition-colors ${selectedIds.has(doc.id) ? 'bg-blue-50/60' : 'hover:bg-slate-50'}`}>
+                  {isAdmin && (
+                    <td className="pl-6 py-4 w-8">
+                      <input type="checkbox" checked={selectedIds.has(doc.id)} onChange={() => toggleOne(doc.id)} aria-label={`Select ${doc.fileName}`} />
+                    </td>
+                  )}
                   <td className="px-6 py-4 font-medium text-slate-800 flex items-center gap-2">
                     <FileText size={16} className="text-blue-500" />
                     {doc.fileName}
@@ -193,6 +232,13 @@ export default function DashboardPage() {
       <UploadModal 
         isOpen={isUploadModalOpen} 
         onClose={() => setIsUploadModalOpen(false)} 
+      />
+      <MoveDocumentsModal
+        isOpen={isMoveOpen}
+        onClose={() => setIsMoveOpen(false)}
+        onMoved={() => { setIsMoveOpen(false); setRefreshKey(k => k + 1); }}
+        documents={selectedDocs}
+        employees={employees}
       />
       <PreviewModal
         isOpen={!!previewDoc}
